@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+</head>
+<body>
+  node背景：
+    最初是写一个事件驱动、非阻塞I/O的web服务器。后来变成构建网络应用的基础框架，在此基础上可以构建服务器、客户端、命令行工具。
+  JS只是一门脚本语言，需要一个解释器才能运行。HTML中的js,浏览器就是解释器。而独立运行的js,node就是解释器。每一种解释器都是一种运行环境，不但允许js定义各种数据结构，进行各种计算，还允许js使用运行环境提供的内置对象和方法做一些事。运行在浏览器中的js主要是操作DOM，浏览器就提供了类似document之类的内置对象，而node中的js主要是操作磁盘文件或搭建http服务器，故提供相应的fs/http内置对象。
+  node 调试js: node --inspect test.js，然后在chrome中打开相应链接。
+  node特点：异步I/O；
+           事件与回调函数（回调函数是最好的接受异步调用返回数据的方式）；
+           单线程：最大好处是不需要像多线程处处在意状态的同步问题，也没有线程上下文交换带来的性能上的开销；
+                 单线程的缺点：无法利用多核CPU；
+                            错误会导致整个应用退出，应用的健壮性值得考验；
+                            大量计算占用CPU导致无法继续调用异步I/O。（HTML5定制了web Workers的标准，能够创建专门的工作线程来进行计算来解决JS大计算阻塞                              UI渲染的问题。工作线程为了不阻碍主线程，通过消息传递的方式来传递运行结果，这也使得工作线程不能访问到主线程中的UI。）
+                    为了解决这些缺点，child_process。将计算分发到各个子进程，再通过进程之间的事件消息传递结果。
+           跨平台；
+  node应用场景：1.I/O密集型。node面向网络且擅长并行I/O。此场景的优势是利用node事件循环的处理能力，而不是启动每一个线程为每一个请求服务，资源占用极少；
+              2.并非不擅长CPU密集型业务。该业务场景给node带来的主要挑战认识JS的单线程原因，大计算将使得后续I/O操作无法发起。解决方法仍是利用多线程；
+              3.实时应用。长连接
+
+  第二章：模块。
+    commonJs规范主要是为了弥补JS没有标准的缺陷。
+    commonJS的模块规范：1.模块引用：require（）；2.模块定义：module对象。exports是module的属性，是唯一导出的出口。3、模块标识。就是传递给require方法的参
+                      数。必须是符合小驼峰命名的字符串后者以.、..开头的相对路径或以/开始的绝对路径（都会当做文件模块加载）。
+    node中模块的实现。
+      node中模块分为核心模块：Node提供的模块；文件模块：用户自己编写的模块。
+      文件模块在运行时动态加载，需要完整的路径分析、文件定位、编译执行过程。js模块的编译首先会对JS文件内容进行头尾包装，在头部添加了
+        （function（exports，require，module，__filename,__dirname）{}） 对每个模板之间进行了作用域隔离
+
+    因前后端侧重点不同，commomJs为后端制定的JS规范并不完全适用于前端，故AMD（异步模块定义）最终在前端应用场景中胜出。
+      AMD是commonJS规范的一个延伸;CMD与AMD的主要确保在于定义模块和依赖引入。AMD需要在声明模块是指定所有依赖，通过形参依赖到模块中：
+        define(['dep1','dep2'],function(dep1,dep2){return function(){})
+      CMD更接近于commonJS的规范，支持动态引入：
+        define(function(require,exports,mudule)(){})  在需要依赖模块时，随时调用require()引入即可。
+
+  node事件:events是node最重要的模块。events模块只提供了一个对象events.EventEmitter(事件发射与事件监听)
+    如何访问:require('events')
+
+
+
+sublime配置node环境：tool -> build system -> untitled(这个地方我保存时忘了命名。。)。在编辑器内运行js文件：ctrl + B
+
+Promise:
+  写在Promise中的同步代码（即new Promise((res,rej) => {console测试代码}）,这部分的第一个参数（函数）也是同步执行的，会按照先后顺序执行，Promise中的异步代码异步执行
+  then中的代码是异步的，相比的是Promise中的代码，then需要在resolve函数执行完毕后的下一个事件循环中调用。虽然在Promise中的状态已经是resolve状态，但是then中的代码还未调用，要在下一个事件循环才能执行（此处需注意）。在某个Promise中抛出了错误，会在最近的一个catch中捕获，包括在then中定义的catch
+
+  async返回的是一个Promise,会将内部的函数封装成一个Promise，async的作用即是包装一个Promise
+  await 作用于一个Promise,await也是等待一个Promise，返回的是Promise中的resolve的值
+
+NodeJS中的异步：约定，回调函数中的第一个参数为错误(err 或者 null)，第二个参数及以后为返回的结果。
+  foo(err,cb)  foo(null,(err,result))
+  setImmediate()与nextTick() 都是用来异步执行的，setImmediate()回调函数的优先级低于nextTick()的回调。nextTick()属于idle观察者，setImmediate()属于check观察者，
+    idle观察者优先于I/O观察者，I/O观察者优先于check观察者。
+    nextTick()的回调保存在一个数组中，setImmediate()回调保存在链表中。在每轮循环中，会执行nextTick（）数组中的所有回调，但只会执行链表中的一个回调
+
+ES6中的class类：
+  class Foo {
+    constructor() {
+      return Object.create(null)
+    }
+  }
+  若不写class的constructor，则默认一个该函数，这个方法默认返回的是实例对象（即this），当然也可以指定返回的对象。
+  父类的静态方法static可以被子类继承
+错误处理：
+  throw new Error
+  Error.captureStackTrace(obj)；thorw obj // 原生方法
+
+
+  require()支持 / 或者 盘符 d: 开头的绝对路径，也支持./开头的相对路径
+   process是一个全局变量，可通过process.argv获得命令行参数。由于argv[0]固定等于NodeJS执行程序的绝对路径，argv[1]固定等于主模块的绝对路径，因此第一个命令行参数从argv[2]这个位置开始。
+
+2018.1.17
+ node版本
+  偶数位为稳定版本 0.6X
+  基数位为非稳定版本 0.9X
+  宿主对象： node: process
+             浏览器环境： window, document
+  commonJs: 规范
+    每一个js文件看做一个模块，不需要有命名空间。模块之间可以相互依赖
+    模块分类： 核心模块（http/fs,在项目启动时会预先加载）、文件模块(自己写的文件util)、第三方模块
+    module.exports是真实存在的，
+    exports是module.exports的一个属性，是传统的模块实例，可以挂载属性和方法，导出的时候再赋给module.exports，但是如果module.exports上已经存在了这个属性或方法，则exports的属性或方法会被忽略
+  url：资源定位符，url是URI的一个子集
+  uri：资源标识符
+  url.parse(urlString[, parseQueryString[, slashesDenoteHost]])  // 第三个参数是标识省略协议时可否正确解析host
+  url.format
+  url.resolve('www.xx', '/one') // '/'标识根路径，没有'/'标识直接在url后面添加
+
+  querystring.escape(123) // 编码,针对中文有效，数字无效
+  querystring.unescapr // 解码
+  querystring.parse
+
+  http：1.浏览器自身的dns解析
+        2.浏览器未找到缓存或者缓存已经失效，则搜索操作系统自身的DNS缓存
+        3.也没有找到，则读取本地的HOSTS文件
+        4.本地也没有，浏览器发起一个DNS请求（这是一个运营商服务器的迭代解析DNC请求过程），请求到以后，会在本地的操作系统中缓存起来
+        5.建立TCP/ip链接
+        6.浏览器向服务器发送http请求
+        7.服务器接受到请求，根据路由做出数据处理并返回
+        8.浏览器拿到返回的数据（HTML、js。。）解析渲染并呈现给用户
+
+</body>
+</html>
